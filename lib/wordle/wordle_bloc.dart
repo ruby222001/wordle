@@ -9,24 +9,30 @@ class WordleBloc extends Bloc<WordleEvent, WordleState> {
   final List<String> words = [
     "APPLE",
     "GRAPE",
-    "PEARL",
-    "PLUMB",
-    "CRANE",
-    "SLATE",
-    "FROST",
-    "GUILD",
-    "SHARP",
-    "TRACK",
-    "VOUCH"
+    "MUSIC",
+    "HUMAN",
+    "SERVE",
+    "SENSE",
+    "LOCAL",
+    "HEART",
+    "LIGHT",
+    "PRICE",
+    "DRIVE",
+    "MODEL",
+    "PAPER",
+    "SPACE",
+    "STUDY"
   ];
 //initial phase will load the app here
   late final List<String> validWords;
+  bool hasSubmitted = false;
 
   WordleBloc() : super(WordleState.initial()) {
     validWords = all
         .where((word) => word.length == 5)
         .map((word) => word.toUpperCase())
         .toList();
+    print(validWords);
 
 //in any event invokes these functions
     on<AddLetter>(_onAddLetter);
@@ -55,7 +61,6 @@ class WordleBloc extends Bloc<WordleEvent, WordleState> {
 
   //to submit guess
   void _onSubmitGuess(SubmitGuess event, Emitter<WordleState> emit) {
-    //if letter is not equal to targetted word length
     if (state.currentGuess.length != state.targetWord.length) return;
 
     final guess = state.currentGuess.toUpperCase();
@@ -68,9 +73,32 @@ class WordleBloc extends Bloc<WordleEvent, WordleState> {
 
     final updatedGuesses = List<String>.from(state.guesses)..add(guess);
 
-//if guess is equal to target word
+    // Get feedback for this guess
+    final feedback = checkGuess(guess);
+
+    // Copy current keyboard state
+    final updatedLetterStatus = Map<String, String>.from(state.letterStatus);
+
+    for (int i = 0; i < guess.length; i++) {
+      final letter = guess[i];
+      final result = feedback[i]; // green / yellow / white
+
+      if (result == "green") {
+        updatedLetterStatus[letter] = "green";
+      } else if (result == "yellow") {
+        if (updatedLetterStatus[letter] != "green") {
+          updatedLetterStatus[letter] = "yellow";
+        }
+      } else {
+        // mark gray only if not already green/yellow
+        if (updatedLetterStatus[letter] != "green" &&
+            updatedLetterStatus[letter] != "yellow") {
+          updatedLetterStatus[letter] = "gray";
+        }
+      }
+    }
+
     if (guess == state.targetWord) {
-      // then show event
       event.onCorrect();
     } else if (updatedGuesses.length >= state.maxAttempts) {
       event.onFail();
@@ -79,8 +107,10 @@ class WordleBloc extends Bloc<WordleEvent, WordleState> {
     emit(state.copyWith(
       guesses: updatedGuesses,
       currentGuess: "",
+      letterStatus: updatedLetterStatus,
     ));
   }
+
 //next game
 
   void _onNextGame(NextGame event, Emitter<WordleState> emit) {
@@ -88,12 +118,12 @@ class WordleBloc extends Bloc<WordleEvent, WordleState> {
     final nextIndex = state.currentWordIndex + 1;
     if (nextIndex < words.length) {
       emit(WordleState(
-        targetWord: words[nextIndex],
-        guesses: [],
-        currentGuess: "",
-        currentWordIndex: nextIndex,
-        maxAttempts: state.maxAttempts,
-      ));
+          targetWord: words[nextIndex],
+          guesses: [],
+          currentGuess: "",
+          currentWordIndex: nextIndex,
+          maxAttempts: state.maxAttempts,
+          letterStatus: {}));
     }
   }
 
@@ -107,6 +137,8 @@ class WordleBloc extends Bloc<WordleEvent, WordleState> {
         // if the index contain in any idex then yellow
       } else if (state.targetWord.contains(guess[i])) {
         feedback[i] = "yellow";
+      } else if (!state.targetWord.contains(guess[i])) {
+        feedback[i] = "gray";
       }
     }
     return feedback;

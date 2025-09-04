@@ -18,7 +18,7 @@ class WordleGame extends StatelessWidget {
         context: context,
         builder: (_) => AlertDialog(
           title: Text(
-            "Welcome!",
+            "Welcome!!!",
             textAlign: TextAlign.center,
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
           ),
@@ -130,7 +130,16 @@ class WordleGame extends StatelessWidget {
                     height: 50,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: Colors.blueGrey.shade700,
+                      color: () {
+                        final status = context
+                            .read<WordleBloc>()
+                            .state
+                            .letterStatus[letter];
+                        if (status == "green") return Colors.green;
+                        if (status == "yellow") return Colors.orange;
+                        if (status == "gray") return Colors.black;
+                        return Colors.blueGrey.shade700; // default
+                      }(),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
