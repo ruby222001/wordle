@@ -37,6 +37,8 @@ dependencies:
   get: ^4.7.2
   confetti: ^0.8.0
   english_words: ^4.0.0
+  bloc: ^9.0.0
+  flutter_bloc: ^9.1.1
 
 dev_dependencies:
   flutter_test:

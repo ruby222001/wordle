@@ -1,8 +1,10 @@
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:wordle_app/component/pop_up.dart';
-import 'package:wordle_app/controller/dashBoard_controller.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wordle_app/wordle/wordle_bloc.dart';
+import 'package:wordle_app/wordle/wordle_event.dart';
+import 'package:wordle_app/wordle/wordle_state.dart';
+
 
 class WordleGame extends StatelessWidget {
   WordleGame({super.key});
@@ -11,92 +13,85 @@ class WordleGame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(WordleController());
     Future.delayed(Duration.zero, () {
-      Get.dialog(const PopUp());
+      showDialog(
+        context: context,
+        builder: (_) => const AlertDialog(title: Text("Welcome!")),
+      );
     });
-    return Stack(children: [
-      Scaffold(
-        appBar: AppBar(
-          title: const Text("Wordle"),
-          centerTitle: true,
-        ),
-        body: Column(
+
+    return BlocBuilder<WordleBloc, WordleState>(
+      builder: (context, state) {
+        return Stack(
           children: [
-            const SizedBox(height: 20),
-            // Guess Grid
-            Expanded(
-              child: Obx(() {
-                return Column(
-                  children: List.generate(controller.maxAttempts, (row) {
-                    String guess = row < controller.guesses.length
-                        ? controller.guesses[row]
-                        : (row == controller.guesses.length
-                            ? controller.currentGuess.value
-                            : "");
+            Scaffold(
+              appBar: AppBar(title: const Text("Wordle"), centerTitle: true),
+              body: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: Column(
+                      children: List.generate(state.maxAttempts, (row) {
+                        String guess = row < state.guesses.length
+                            ? state.guesses[row]
+                            : (row == state.guesses.length ? state.currentGuess : "");
 
-                    List<String> feedback = row < controller.guesses.length
-                        ? controller.checkGuess(guess)
-                        : List.filled(controller.targetWord.length, "empty");
+                        List<String> feedback = row < state.guesses.length
+                            ? context.read<WordleBloc>().checkGuess(guess)
+                            : List.filled(state.targetWord.length, "empty");
 
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children:
-                          List.generate(controller.targetWord.length, (i) {
-                        String letter = i < guess.length ? guess[i] : "";
-                        Color color;
-                        if (feedback[i] == "green") {
-                          color = Colors.green;
-                        } else if (feedback[i] == "yellow") {
-                          color = Colors.orange;
-                        } else if (feedback[i] == "gray") {
-                          color = Colors.grey.shade700;
-                        } else {
-                          color = Colors.black12;
-                        }
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(state.targetWord.length, (i) {
+                            String letter = i < guess.length ? guess[i] : "";
+                            Color color;
+                            if (feedback[i] == "green") {
+                              color = Colors.green;
+                            } else if (feedback[i] == "yellow") {
+                              color = Colors.orange;
+                            } else if (feedback[i] == "gray") {
+                              color = Colors.grey.shade700;
+                            } else {
+                              color = Colors.black12;
+                            }
 
-                        return Container(
-                          margin: const EdgeInsets.all(4),
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: color,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.black),
-                          ),
-                          child: Center(
-                            child: Text(
-                              letter,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
+                            return Container(
+                              margin: const EdgeInsets.all(4),
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.black),
                               ),
-                            ),
-                          ),
+                              child: Center(
+                                child: Text(
+                                  letter,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
                         );
                       }),
-                    );
-                  }),
-                );
-              }),
+                    ),
+                  ),
+                  buildKeyboard(context),
+                ],
+              ),
             ),
-
-            // Custom Keyboard
-            buildKeyboard(controller),
           ],
-        ),
-      ),
-    ]);
+        );
+      },
+    );
   }
-            // Custom Keyboard
 
-  Widget buildKeyboard(WordleController controller) {
-    final keys = [
-      "QWERTYUIOP",
-      "ASDFGHJKL",
-      "ZXCVBNM",
-    ];
+  Widget buildKeyboard(BuildContext context) {
+    final keys = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 
     return Column(
       children: [
@@ -107,7 +102,7 @@ class WordleGame extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: GestureDetector(
-                  onTap: () => controller.addLetter(letter),
+                  onTap: () => context.read<WordleBloc>().add(AddLetter(letter)),
                   child: Container(
                     width: 30,
                     height: 50,
@@ -129,12 +124,11 @@ class WordleGame extends StatelessWidget {
               );
             }).toList(),
           ),
-        // Clear + Submit row
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             GestureDetector(
-              onTap: controller.removeLetter,
+              onTap: () => context.read<WordleBloc>().add(RemoveLetter()),
               child: Container(
                 width: 80,
                 height: 50,
@@ -144,59 +138,53 @@ class WordleGame extends StatelessWidget {
                   color: Colors.red.shade600,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  "Clear",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: const Text("Clear",
+                    style: TextStyle(fontSize: 16, color: Colors.white)),
               ),
             ),
             GestureDetector(
               onTap: () {
-                controller.submitGuess(
-                  onCorrect: () {
-                    confettiController.play();
-                    Get.dialog(
-                      AlertDialog(
-                        title: const Text("🎉 Correct!"),
-                        content: Text(
-                            "You guessed '${controller.targetWord}' correctly!"),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              controller.nextGame();
-                              Get.back();
-                            },
-                            child: const Text("Next Round"),
-                          ),
-                        ],
+                context.read<WordleBloc>().add(
+                      SubmitGuess(
+                        onCorrect: () {
+                          confettiController.play();
+                          showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text("🎉 Correct!"),
+                              content: const Text("You guessed correctly!"),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    context.read<WordleBloc>().add(NextGame());
+                                    Navigator.pop(context);
+                                  },
+                                  child: const Text("Next Round"),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        onFail: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text("Out of tries!"),
+                              content: const Text("Better luck next time!"),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    context.read<WordleBloc>().add(NextGame());
+                                    Navigator.pop(context);
+                                  },
+                                  child: const Text("Next Round"),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
-                      barrierDismissible: false,
                     );
-                  },
-                  onFail: () {
-                    Get.dialog(
-                      AlertDialog(
-                        title: const Text("Out of tries!"),
-                        content: Text(
-                            "The correct word was '${controller.targetWord}'"),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              controller.nextGame();
-                              Get.back();
-                            },
-                            child: const Text("Next Round"),
-                          ),
-                        ],
-                      ),
-                      barrierDismissible: false,
-                    );
-                  },
-                );
               },
               child: Container(
                 width: 80,
@@ -207,14 +195,8 @@ class WordleGame extends StatelessWidget {
                   color: Colors.green.shade700,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  "Submit",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: const Text("Submit",
+                    style: TextStyle(fontSize: 16, color: Colors.white)),
               ),
             ),
           ],

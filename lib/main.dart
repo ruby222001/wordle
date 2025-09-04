@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:wordle_app/page/dashboard.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:wordle_app/wordle/wordle_bloc.dart';
+
 
 void main() {
-  runApp(const MyApp());
+  runApp(const WordleApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class WordleApp extends StatelessWidget {
+  const WordleApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: "Wordle App",
-      home: WordleGame(),
+    return BlocProvider(
+      create: (_) => WordleBloc(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Wordle Game',
+        theme: ThemeData(primarySwatch: Colors.blue),
+        home: WordleGame(),
+      ),
     );
   }
 }
