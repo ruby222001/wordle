@@ -1,10 +1,10 @@
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lottie/lottie.dart';
 import 'package:wordle_app/wordle/wordle_bloc.dart';
 import 'package:wordle_app/wordle/wordle_event.dart';
 import 'package:wordle_app/wordle/wordle_state.dart';
-
 
 class WordleGame extends StatelessWidget {
   WordleGame({super.key});
@@ -16,7 +16,14 @@ class WordleGame extends StatelessWidget {
     Future.delayed(Duration.zero, () {
       showDialog(
         context: context,
-        builder: (_) => const AlertDialog(title: Text("Welcome!")),
+        builder: (_) => AlertDialog(
+          title: Text(
+            "Welcome!",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          ),
+          content: Image.asset('assets/wordle.png'),
+        ),
       );
     });
 
@@ -25,16 +32,30 @@ class WordleGame extends StatelessWidget {
         return Stack(
           children: [
             Scaffold(
-              appBar: AppBar(title: const Text("Wordle"), centerTitle: true),
+              backgroundColor: Colors.white,
+              appBar: AppBar(
+                  backgroundColor: Colors.white,
+                  title: const Text(
+                    "Wordle Game",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                  ),
+                  centerTitle: false),
               body: Column(
                 children: [
+                  const SizedBox(height: 20),
+                  Text(
+                    'Round ${state.currentWordIndex + 1}',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                  ),
                   const SizedBox(height: 20),
                   Expanded(
                     child: Column(
                       children: List.generate(state.maxAttempts, (row) {
                         String guess = row < state.guesses.length
                             ? state.guesses[row]
-                            : (row == state.guesses.length ? state.currentGuess : "");
+                            : (row == state.guesses.length
+                                ? state.currentGuess
+                                : "");
 
                         List<String> feedback = row < state.guesses.length
                             ? context.read<WordleBloc>().checkGuess(guess)
@@ -102,7 +123,8 @@ class WordleGame extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: GestureDetector(
-                  onTap: () => context.read<WordleBloc>().add(AddLetter(letter)),
+                  onTap: () =>
+                      context.read<WordleBloc>().add(AddLetter(letter)),
                   child: Container(
                     width: 30,
                     height: 50,
@@ -124,82 +146,142 @@ class WordleGame extends StatelessWidget {
               );
             }).toList(),
           ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            GestureDetector(
-              onTap: () => context.read<WordleBloc>().add(RemoveLetter()),
-              child: Container(
-                width: 80,
-                height: 50,
-                alignment: Alignment.center,
-                margin: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade600,
-                  borderRadius: BorderRadius.circular(6),
+        SizedBox(
+          height: 20,
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              //CLEAR text
+              GestureDetector(
+                onTap: () => context.read<WordleBloc>().add(RemoveLetter()),
+                child: Container(
+                  width: 80,
+                  height: 50,
+                  alignment: Alignment.center,
+                  margin: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade600,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text("Clear",
+                      style: TextStyle(fontSize: 16, color: Colors.white)),
                 ),
-                child: const Text("Clear",
-                    style: TextStyle(fontSize: 16, color: Colors.white)),
               ),
-            ),
-            GestureDetector(
-              onTap: () {
-                context.read<WordleBloc>().add(
-                      SubmitGuess(
-                        onCorrect: () {
-                          confettiController.play();
-                          showDialog(
-                            context: context,
-                            builder: (_) => AlertDialog(
-                              title: const Text("🎉 Correct!"),
-                              content: const Text("You guessed correctly!"),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    context.read<WordleBloc>().add(NextGame());
-                                    Navigator.pop(context);
-                                  },
-                                  child: const Text("Next Round"),
+              SizedBox(
+                height: 20,
+              ),
+              //submit
+              GestureDetector(
+                onTap: () {
+                  context.read<WordleBloc>().add(
+                        SubmitGuess(
+                          onInvalidWord: () {
+                            showDialog(
+                              context: context,
+                              builder: (_) => const AlertDialog(
+                                title: Text("Not a Word",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black)),
+                                content: Text("Please enter a valid word.",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black)),
+                              ),
+                            );
+                          },
+                          onCorrect: () async {
+                            confettiController.play();
+
+                            showDialog(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                backgroundColor: Colors.white,
+                                content: SizedBox(
+                                  height: 150,
+                                  child: Lottie.asset('assets/json/sucess.json',
+                                      repeat: false),
                                 ),
-                              ],
-                            ),
-                          );
-                        },
-                        onFail: () {
-                          showDialog(
-                            context: context,
-                            builder: (_) => AlertDialog(
-                              title: const Text("Out of tries!"),
-                              content: const Text("Better luck next time!"),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    context.read<WordleBloc>().add(NextGame());
-                                    Navigator.pop(context);
-                                  },
-                                  child: const Text("Next Round"),
+                                actions: [
+                                  TextButton(
+                                    style: TextButton.styleFrom(
+                                      backgroundColor: Colors.black,
+                                      foregroundColor: Colors.black,
+                                    ),
+                                    onPressed: () {
+                                      context
+                                          .read<WordleBloc>()
+                                          .add(NextGame());
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text(
+                                      "Next Round",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          onFail: () {
+                            showDialog(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                title: const Text(
+                                  "Out of tries!",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black),
                                 ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    );
-              },
-              child: Container(
-                width: 80,
-                height: 50,
-                alignment: Alignment.center,
-                margin: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade700,
-                  borderRadius: BorderRadius.circular(6),
+                                content: const Text("Better luck next time!",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black)),
+                                actions: [
+                                  TextButton(
+                                    style: TextButton.styleFrom(
+                                      backgroundColor: Colors.black,
+                                      foregroundColor: Colors.black,
+                                    ),
+                                    onPressed: () {
+                                      context
+                                          .read<WordleBloc>()
+                                          .add(NextGame());
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text(
+                                      "Next Round",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                },
+                child: Container(
+                  width: 80,
+                  height: 50,
+                  alignment: Alignment.center,
+                  margin: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade700,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text("Submit",
+                      style: TextStyle(fontSize: 16, color: Colors.white)),
                 ),
-                child: const Text("Submit",
-                    style: TextStyle(fontSize: 16, color: Colors.white)),
               ),
-            ),
-          ],
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 20,
         ),
       ],
     );
