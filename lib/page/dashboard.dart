@@ -2,22 +2,32 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
+import 'package:wordle_app/theme/theme.dart';
 import 'package:wordle_app/wordle/wordle_bloc.dart';
 import 'package:wordle_app/wordle/wordle_event.dart';
 import 'package:wordle_app/wordle/wordle_state.dart';
 
-class WordleGame extends StatelessWidget {
-  WordleGame({super.key});
+class WordleGame extends StatefulWidget {
+  const WordleGame({super.key});
+
+  @override
+  State<WordleGame> createState() => _WordleGameState();
+}
+
+class _WordleGameState extends State<WordleGame> {
   final confettiController =
       ConfettiController(duration: const Duration(seconds: 3));
 
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    super.initState();
+
+    // ✅ Show welcome dialog only once
     Future.delayed(Duration.zero, () {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: Text(
+          title: const Text(
             "Welcome!!!",
             textAlign: TextAlign.center,
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
@@ -26,86 +36,111 @@ class WordleGame extends StatelessWidget {
         ),
       );
     });
+  }
 
+  @override
+  void dispose() {
+    confettiController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return BlocBuilder<WordleBloc, WordleState>(
       builder: (context, state) {
-        return Stack(
-          children: [
-            Scaffold(
-              backgroundColor: Colors.white,
-              appBar: AppBar(
-                  backgroundColor: Colors.white,
-                  title: const Text(
-                    "Wordle Game",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                  ),
-                  centerTitle: false),
-              body: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  Text(
-                    'Round ${state.currentWordIndex + 1}',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: Column(
-                      children: List.generate(state.maxAttempts, (row) {
-                        String guess = row < state.guesses.length
-                            ? state.guesses[row]
-                            : (row == state.guesses.length
-                                ? state.currentGuess
-                                : "");
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text(
+              "Wordle Game",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.brightness_6),
+                onPressed: () {
+                  context.read<ThemeBloc>().add(ToggleThemeEvent());
+                },
+              ),
+            ],
+          ),
+          body: Column(
+            children: [
+              const SizedBox(height: 20),
+              Text(
+                'Round ${state.currentWordIndex + 1}',
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+              ),
+              const SizedBox(height: 20),
+              Expanded(
+                child: Column(
+                  children: List.generate(state.maxAttempts, (row) {
+                    String guess = row < state.guesses.length
+                        ? state.guesses[row]
+                        : (row == state.guesses.length
+                            ? state.currentGuess
+                            : "");
 
-                        List<String> feedback = row < state.guesses.length
-                            ? context.read<WordleBloc>().checkGuess(guess)
-                            : List.filled(state.targetWord.length, "empty");
+                    List<String> feedback = row < state.guesses.length
+                        ? context.read<WordleBloc>().checkGuess(guess)
+                        : List.filled(state.targetWord.length, "empty");
 
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(state.targetWord.length, (i) {
-                            String letter = i < guess.length ? guess[i] : "";
-                            Color color;
-                            if (feedback[i] == "green") {
-                              color = Colors.green;
-                            } else if (feedback[i] == "yellow") {
-                              color = Colors.orange;
-                            } else if (feedback[i] == "gray") {
-                              color = Colors.grey.shade700;
-                            } else {
-                              color = Colors.black12;
-                            }
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(state.targetWord.length, (i) {
+                        String letter = i < guess.length ? guess[i] : "";
+                        Color color;
+                        if (feedback[i] == "green") {
+                          color = Colors.green;
+                        } else if (feedback[i] == "yellow") {
+                          color = Colors.orange;
+                        } else if (feedback[i] == "gray") {
+                          color =
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey.shade800
+                                  : Colors.grey.shade700;
+                        } else {
+                          color =
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey.shade900
+                                  : Colors.black12;
+                        }
 
-                            return Container(
-                              margin: const EdgeInsets.all(4),
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                color: color,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.black),
+                        return Container(
+                          margin: const EdgeInsets.all(4),
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black),
+                          ),
+                          child: Center(
+                            child: Text(
+                              letter,
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black,
                               ),
-                              child: Center(
-                                child: Text(
-                                  letter,
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }),
+                            ),
+                          ),
                         );
                       }),
-                    ),
-                  ),
-                  buildKeyboard(context),
-                ],
+                    );
+                  }),
+                ),
               ),
-            ),
-          ],
+              buildKeyboard(context),
+            ],
+          ),
         );
       },
     );
